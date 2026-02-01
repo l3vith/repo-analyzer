@@ -81,9 +81,11 @@ async def get_patches(
     repo: Repository,
     token: str | None = None,
 ) -> Repository:
+    """
+    Asynchronous function to request patches and commit details for multiple patches, utilizing semaphore to avoid bombarding requests
+    """
     headers = {}
     if token:
-        logger.warning("Tokenless API Calls In Use!")
         headers["Authorization"] = f"Bearer {token}"
     else:
         logger.warning("Tokenless API Calls In Use!")
@@ -92,10 +94,13 @@ async def get_patches(
         logger.error("Patches requested before fetching commit SHA hashes")
         raise RuntimeError("Repository commits not fetched")
 
-    tasks = [
-        get_patch(client, repo.user, repo.name, commit.sha, token)
-        for commit in repo.commits
-    ]
+    sem = asyncio.Semaphore(10)
+
+    async def safe_patch_request(commit: Commit):
+        async with sem:
+            return await get_patch(client, repo.user, repo.name, commit.sha, token)
+
+    tasks = [safe_patch_request(commit) for commit in repo.commits]
     results = await asyncio.gather(*tasks)
 
     for commit, detail in zip(repo.commits, results):
@@ -112,7 +117,6 @@ async def get_commits(
 ) -> Repository:
     headers = {}
     if token:
-        logger.warning("Tokenless API Calls In Use!")
         headers["Authorization"] = f"Bearer {token}"
     else:
         logger.warning("Tokenless API Calls In Use!")

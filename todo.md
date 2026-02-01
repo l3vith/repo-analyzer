@@ -7,6 +7,7 @@
 - [] Finish asnyc stuff
 - [] Improved error handling
 - [] Add fastapi routes
+- [] Handle pagination for requests
 
 # Misc
 - [x] Modularize api calls
