@@ -1,20 +1,27 @@
 import asyncio
+import os
+
+import dotenv
 import httpx
-from repository import get_commits, Commit
+
+from repository import Repository, update_commits
+
+dotenv.load_dotenv()
+
 
 async def main():
     client = httpx.AsyncClient()
-    # implement handling for pydantic @validate_call
-    data = await get_commits(client, "l3vith", "torr")
-    # print(json.dumps(data, indent=4))
-    print(len(data) if data else None)
+    repo = Repository(user="l3vith", name="torr")
+    repo = await update_commits(client, repo, token=os.getenv("GITHUB_TOKEN"))
 
-    commits = [Commit.model_validate(commit) for commit in data]
-    print(commits)
+    if repo.commits is not None and len(repo.commits) > 0:
+        first_commit = repo.commits[0]
+
+        if first_commit.files is not None and len(first_commit.files) > 0:
+            print(first_commit.author)
 
     await client.aclose()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-
